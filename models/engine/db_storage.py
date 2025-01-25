@@ -6,9 +6,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from models.state import State
 from models.city import City
+from models.user import User
+from models.place import Place
+from models.amenity import Amenity
+from models.review import Review
 from models.base_model import Base
 import os
-
 
 class DBStorage:
     __engine = None
@@ -29,12 +32,28 @@ class DBStorage:
 
     def all(self, cls=None):
         """Queries all objects"""
+        objs_list = []
         if cls:
-            objs = self.__session.query(cls).all()
+            if isinstance(cls, str):
+                try:
+                    cls = globals()[cls]
+                except KeyError:
+                    pass
+            if issubclass(cls, Base):
+                objs_list = self.__session.query(cls).all()
         else:
-            objs = self.__session.query(State).all() + self.__session.query(City).all()
-        return {f'{type(obj).__name__}.{obj.id}': obj for obj in objs}
-
+            for subclass in Base.__subclasses__():
+                objs_list.extend(self.__session.query(subclass).all())
+        obj_dict = {}
+        for obj in objs_list:
+            key = "{}.{}".format(obj.__class__.__name__, obj.id)
+            try:
+                del obj.__sa__instance_state
+                obj_dict[key] = obj
+            except Exception:
+                pass
+        return obj_dict
+            
     def new(self, obj):
         """Adds object to session"""
         self.__session.add(obj)
