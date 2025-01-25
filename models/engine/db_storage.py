@@ -27,13 +27,11 @@ class DBStorage:
 
     def all(self, cls=None):
         """Queries all objects"""
-        objects = {}
-        classes = [cls] if cls else Base.__subclasses__()
-        for class_ in classes:
-            for obj in self.__session.query(class_):
-                key = f"{obj.__class__.__name__}.{obj.id}"
-                objects[key] = obj
-        return objects
+        if cls:
+            objs = self.__session.query(cls).all()
+        else:
+            objs = self.__session.query(State).all() + self.__session.query(City).all()
+        return {f'{type(obj).__name__}.{obj.id}': obj for obj in objs}
 
     def new(self, obj):
         """Adds object to session"""
