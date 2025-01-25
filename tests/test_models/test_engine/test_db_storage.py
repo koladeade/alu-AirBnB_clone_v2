@@ -3,12 +3,10 @@ import os
 import unittest
 from models.state import State
 from models.engine.db_storage import DBStorage
-from sqlalchemy.orm import sessionmaker
+
 
 storage = DBStorage()
-storage.reload()
-Session = sessionmaker(bind=storage._DBStorage__engine)
-session = Session()
+
 
 @unittest.skipIf(os.getenv('HBNB_TYPE_STORAGE') != 'db', 'DB Storage test')
 class TestDBStorage(unittest.TestCase):
@@ -17,20 +15,19 @@ class TestDBStorage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Setting up the test environment"""
-        cls.session = session
-
-    @classmethod
-    def tearDownClass(cls):
-        """Tearing down the test environment"""
-        cls.session.close()
+        storage.reload()
+        if not isinstance(storage, DBStorage):
+            raise unittest.SkipTest("Not using DBStorage")
 
     def setUp(self):
-        """Begin a new session for each test"""
-        self.session.begin()
+        if isinstance(storage, DBStorage):
+            self.session = storage._DBStorage__session
+            self.session.begin()
 
     def tearDown(self):
-        """Roll back the session after each test"""
-        self.session.rollback()
+        """Rolls back a transaction"""
+        if hasattr(self, 'session'):
+            self.session.rollback()
 
     def test_add_and_commit(self):
         """Testing adding and committing objects to Database"""
@@ -71,6 +68,3 @@ class TestDBStorage(unittest.TestCase):
         # Cleanup
         self.session.delete(new_state)
         self.session.commit()
-
-if __name__ == "__main__":
-    unittest.main()
