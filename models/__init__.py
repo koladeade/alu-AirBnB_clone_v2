@@ -11,11 +11,8 @@ print(f"HBNB_TYPE_STORAGE: {storage_type}")  # Debugging line to print the stora
 if storage_type == 'db':
     from models.engine.db_storage import DBStorage
     storage = DBStorage()
-    print("DBStorage initialized")
 else:
     from models.engine.file_storage import FileStorage
     storage = FileStorage()
-    print("FileStorage initialized")
 
 storage.reload()
-print("Storage reloaded")
