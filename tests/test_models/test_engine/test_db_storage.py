@@ -24,27 +24,40 @@ class TestDBStorage(unittest.TestCase):
         """Tearing down the test environment"""
         cls.session.close()
 
+    def setUp(self):
+        """Begin a new session for each test"""
+        self.session.begin()
+
+    def tearDown(self):
+        """Roll back the session after each test"""
+        self.session.rollback()
+
     def test_add_and_commit(self):
         """Testing adding and committing objects to Database"""
         initial_count = self.session.query(State).count()
-        new_state = State(name="California")
+        new_state = State(name="Texas")
         self.session.add(new_state)
         self.session.commit()
-        new_count = self.session.query(State).count()
-        self.assertEqual(initial_count + 1, new_count)
-
-    def test_delete_state(self):
-        """Testing deleting objects from Database"""
-        new_state = State(name="California")
-        self.session.add(new_state)
-        self.session.commit()
-        initial_count = self.session.query(State).count()
+        self.assertEqual(self.session.query(State).count(), initial_count + 1)
         self.session.delete(new_state)
         self.session.commit()
-        new_count = self.session.query(State).count()
-        self.assertEqual(initial_count - 1, new_count)
 
-    def test_retrieve_state(self):
+    def test_delete_state(self):
+        """Testing deleting a State from the Database"""
+        initial_count = self.session.query(State).count()
+
+        new_state = State(name="California")
+        self.session.add(new_state)
+        self.session.commit()
+
+        self.assertEqual(self.session.query(State).count(), initial_count + 1)
+
+        # Deletes then verifies removal
+        self.session.delete(new_state)
+        self.session.commit()
+        self.assertEqual(self.session.query(State).count(), initial_count)
+
+    def test_get_state(self):
         """Testing retrieving a State from the Database"""
         new_state = State(name="Nevada")
         self.session.add(new_state)
