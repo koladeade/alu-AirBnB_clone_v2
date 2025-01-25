@@ -6,6 +6,7 @@ from models.engine.db_storage import DBStorage
 from sqlalchemy.orm import sessionmaker
 
 storage = DBStorage()
+storage.reload()
 Session = sessionmaker(bind=storage._DBStorage__engine)
 session = Session()
 
@@ -42,6 +43,21 @@ class TestDBStorage(unittest.TestCase):
         self.session.commit()
         new_count = self.session.query(State).count()
         self.assertEqual(initial_count - 1, new_count)
+
+    def test_retrieve_state(self):
+        """Testing retrieving a State from the Database"""
+        new_state = State(name="Nevada")
+        self.session.add(new_state)
+        self.session.commit()
+
+        # Retrieves and verifies retrieval
+        retrieved_state = self.session.query(State).get(new_state.id)
+        self.assertEqual(retrieved_state.id, new_state.id)
+        self.assertEqual(retrieved_state.name, "Nevada")
+
+        # Cleanup
+        self.session.delete(new_state)
+        self.session.commit()
 
 if __name__ == "__main__":
     unittest.main()
