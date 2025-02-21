@@ -125,28 +125,42 @@ class HBNBCommand(cmd.Cmd):
         elif class_name not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        # create Place city_id="0001" user_id="0001" name="My_little_house"
-        all_list = args.split(" ")
 
+        # Parse arguments
+        all_list = args.split(" ")
         new_instance = eval(class_name)()
 
+        # Create dictionary of attributes
+        params = {}
         for i in range(1, len(all_list)):
-            key, value = tuple(all_list[i].split("="))
-            if value.startswith('"'):
-                value = value.strip('"').replace("_", " ")
-            else:
-                try:
-                    value = eval(value)
-                except Exception:
-                    print(f"** couldnt evaluate {value}")
-                    pass
+            try:
+                key, value = tuple(all_list[i].split("="))
+                if value.startswith('"'):
+                    value = value.strip('"').replace("_", " ")
+                else:
+                    try:
+                        value = eval(value)
+                    except Exception:
+                        print(f"** couldn't evaluate {value}")
+                        continue
+                params[key] = value
+            except ValueError:
+                continue
+
+        # Set attributes on instance
+        for key, value in params.items():
             if hasattr(new_instance, key):
                 setattr(new_instance, key, value)
 
-        storage.new(new_instance)
-        print(new_instance.id)
-        new_instance.save()
-
+        try:
+            # Add to session and commit
+            storage.new(new_instance)
+            storage.save()
+            print(new_instance.id)
+        except Exception as e:
+            print(f"Error saving to database: {e}")
+            storage.__session.rollback()
+            
     def help_create(self):
         """ Help information for the create method """
         print("Creates a class of any type")
@@ -227,15 +241,16 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage._FileStorage__objects.items():
-                if k.split('.')[0] == args:
-                    print_list.append(str(v))
+
+            objs = storage.all(HBNBCommand.classes[args])
         else:
-            for k, v in storage._FileStorage__objects.items():
-                print_list.append(str(v))
+            objs = storage.all()
+
+        for obj in objs.values():
+            print_list.append(str(obj))
 
         print(print_list)
-
+        
     def help_all(self):
         """ Help information for the all command """
         print("Shows all objects, or all of a class")
